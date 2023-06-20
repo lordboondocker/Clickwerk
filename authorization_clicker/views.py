@@ -5,9 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from .forms import UserForm
 from .serializers import UserSerializer, UserSerializerDetail
-from backend.models import Core
-
-# Create your views here.
+from django.apps import apps
 
 
 class UserList(generics.ListAPIView):
@@ -23,8 +21,14 @@ class UserDetail(generics.RetrieveAPIView):
 def index(request):
     user = User.objects.filter(id=request.user.id)
     if len(user) != 0:
-        core = Core.objects.get(user=request.user)
-        return render(request, 'index.html', {'core':core})
+        coreModel = apps.get_model('backend', 'Core')
+        boostsModel = apps.get_model('backend', 'Boost')
+        core = coreModel.objects.get(user=request.user)
+        boosts = boostsModel.objects.filter(core=core)
+        return render(request, 'index.html', {
+            'core': core,
+            'boosts': boosts
+        })
     else:
         return redirect('login')
 
@@ -55,6 +59,7 @@ class Register(APIView):
         return render(request, 'registration.html', {'invalid': False, 'form': form})
 
     def post(self, request):
+        coreModel = apps.get_model('backend', 'Core')
         form = UserForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username']
@@ -65,7 +70,7 @@ class Register(APIView):
                 user.save()
                 user = authenticate(request, username=username, password=password)
                 login(request, user)
-                core = Core(user=user)
+                core = coreModel(user=user)
                 core.save()
                 return redirect('index')
             else:
