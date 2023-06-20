@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
 from rest_framework import generics
 from django.contrib.auth.models import User
+from rest_framework.views import APIView
 from .forms import UserForm
 from .serializers import UserSerializer, UserSerializerDetail
 
@@ -27,8 +28,11 @@ def index(request):
         return redirect('login')
 
 
-def user_login(request):
-    if request.method == 'POST':
+class Login(APIView):
+    def get(self, request):
+        return render(request, 'login.html', {'invalid': False})
+
+    def post(self, request):
         username = request.POST['username']
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
@@ -36,9 +40,7 @@ def user_login(request):
             login(request, user)
             return redirect('index')
         else:
-            return render(request, 'login.html')
-    else:
-        return render(request, 'login.html')
+            return render(request, 'login.html', {'invalid': True})
 
 
 def user_logout(request):
@@ -46,8 +48,12 @@ def user_logout(request):
     return redirect('login')
 
 
-def user_registration(request):
-    if request.method == 'POST':
+class Register(APIView):
+    def get(self, request):
+        form = UserForm()
+        return render(request, 'registration.html', {'invalid': False, 'form': form})
+
+    def post(self, request):
         form = UserForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username']
@@ -61,6 +67,3 @@ def user_registration(request):
                 return redirect('index')
             else:
                 return render(request, 'registration.html', {'invalid': True, 'form': form})
-    else:
-        form = UserForm()
-        return render(request, 'registration.html', {'invalid': False, 'form': form})
